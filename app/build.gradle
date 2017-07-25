@@ -26,5 +26,9 @@ dependencies {
     })
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support:recyclerview-v7:25.3.1'
+    //usng glide instead of picasso
+    compile 'com.github.bumptech.glide:glide:3.7.0'
+    //added firebase dependency
+    compile 'com.firebase:firebase-jobdispatcher:0.5.2'
     testCompile 'junit:junit:4.12'
 }

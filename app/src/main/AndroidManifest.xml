@@ -18,6 +18,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service android:name=".Utility.ScheduleUtils"
+            android:exported="false">
+            <action android:name="com.firebase.jobdispatcher.ACTION_EXECUTE"/>
+        </service>
     </application>
 
 </manifest>

@@ -1,8 +1,15 @@
 package com.example.theblah.newsapp;
 
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.preference.PreferenceManager;
+import android.support.v4.app.LoaderManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -14,22 +21,20 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.example.theblah.newsapp.Utility.Constants;
+import com.example.theblah.newsapp.Utility.DBUtils;
+import com.example.theblah.newsapp.Utility.NetworkUtils;
+import com.example.theblah.newsapp.Utility.ScheduleUtils;
+import com.example.theblah.newsapp.Utility.jsonUtils;
 import com.example.theblah.newsapp.models.NewsItem;
 
-import java.net.URL;
-import java.util.ArrayList;
+import static com.example.theblah.newsapp.Shared.*;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements LoaderManager.LoaderCallbacks<Void>, RecyclerViewAdapter.ItemClickListener {
     static final String TAG = "MainActivity";
 
     //https://newsapi.org/v1/articles?source=the-next-web&sortBy=latest&apiKey=
-    public static final String SOURCE = "the-next-web";
-    public static final String SORTBY = "latest";
-
-    private ProgressBar progress;
-    private RecyclerView recyclerView;
-    private TextView errorView;
-    private RecyclerViewAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,95 +43,122 @@ public class MainActivity extends AppCompatActivity {
 
         progress = (ProgressBar) findViewById(R.id.progressBar);
         recyclerView = (RecyclerView) findViewById(R.id.main_recyclerView);
-        errorView = (TextView) findViewById(R.id.tv_error_message_display);
-
+        main = this;
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        //check shared preferences for previous installation of app
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isFirst = prefs.getBoolean("isfirst", true);
+
+        if (isFirst) { //if not found then do initial loading of db
+            refresh();
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("isfirst", false);
+            editor.commit();
+        }
+        //schedule
+        ScheduleUtils.scheduleRefresh(this);
     }
 
+    //on app create/resume etc set up rv to view db
+    @Override
+    protected void onStart() {
+        super.onStart();
+        db = new DBUtils(this).getReadableDatabase();
+        cursor = DBUtils.getAll(db);
+        mAdapter = new RecyclerViewAdapter(cursor, this);
+        recyclerView.setAdapter(mAdapter);
+        showRV();
+    }
+
+    //cleanup for db
+    @Override
+    protected void onStop() {
+        super.onStop();
+        db.close();
+        cursor.close();
+    }
+
+    //refresh button menu inflater
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 
+    //refresh button handler
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemNumber = item.getItemId();
 
         if (itemNumber == R.id.menu_search) {
-            NetworkTask task = new NetworkTask(SOURCE, SORTBY);
-            task.execute();
+            refresh();
         }
+
         return true;
     }
 
-    class NetworkTask extends AsyncTask<URL, Void, ArrayList<NewsItem>> {
-        String SOURCE, SORT_BY;
+    //start/restarts the background process to refresh articles triggered by refresh button
+    public void refresh() {
+        LoaderManager loaderManager = getSupportLoaderManager();
+        loaderManager.restartLoader(Constants.loaderID, null, this).forceLoad();
+    }
 
-        NetworkTask(String source, String sortBy) {
-            SOURCE = source;
-            SORT_BY = sortBy;
-        }
+    @Override
+    public Loader<Void> onCreateLoader(int id, Bundle args) {
+        return new AsyncTaskLoader<Void>(this) {
+            //preload actions
+            @Override
+            protected void onStartLoading() {
+                super.onStartLoading();
+                loadingRV();
 
-        private void showError() {
-            errorView.setVisibility(View.VISIBLE);
-            recyclerView.setVisibility(View.INVISIBLE);
-        }
-
-        private void showRV() {
-            errorView.setVisibility(View.GONE);
-            recyclerView.setVisibility(View.VISIBLE);
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            progress.setVisibility(View.VISIBLE);
-        }
-
-        @Override
-        protected ArrayList<NewsItem> doInBackground(URL... params) {
-            ArrayList<NewsItem> result = null;
-            URL url = NetworkUtils.makeURL(SOURCE, SORT_BY);
-            Log.d(TAG, "url: " + url.toString());
-            try {
-                String json = NetworkUtils.getResponseFromHttpUrl(url);
-                result = jsonUtils.parseJSON(json);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
 
-            return result;
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<NewsItem> s) {
-            super.onPostExecute(s);
-            progress.setVisibility(View.GONE);
-            if (s != null) {
-                mAdapter = new RecyclerViewAdapter(s, new RecyclerViewAdapter.ItemClickListener() {
-                    @Override
-                    public void onItemClick(int clickedItemIndex) {
-                        if (mAdapter.getItemCount() != 0) {
-                            String url = mAdapter.getData().get(clickedItemIndex).getUrl();
-                            Log.d(TAG, String.format("Url %s", url));
-                            openWebPage(url);
-                        }
-                    }
-                });
-                recyclerView.setAdapter(mAdapter);
-                showRV();
-            } else {
-                showError();
+            //background thread does stuff here
+            @Override
+            public Void loadInBackground() {
+                DBUtils.refreshDB(MainActivity.this);
+                return null;
             }
-        }
+        };
+    }
 
-        public void openWebPage(String url) {
-            Uri webpage = Uri.parse(url);
-            Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
-            if (intent.resolveActivity(getPackageManager()) != null) {
-                startActivity(intent);
-            }
+    //callback method for background thread finish
+    @Override
+    public void onLoadFinished(Loader<Void> loader, Void data) {
+        showRV();
+        //get cursor to updated db
+        db = new DBUtils(MainActivity.this).getReadableDatabase();
+        cursor = DBUtils.getAll(db);
+
+        //reset adapter to new cursor
+        mAdapter = new RecyclerViewAdapter(cursor, this);
+        recyclerView.setAdapter(mAdapter);
+        mAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Void> loader) {
+
+    }
+
+    //helper function for opening web page
+    public void openWebPage(String url) {
+        Uri webpage = Uri.parse(url);
+        Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
         }
+    }
+
+    //on item click handler for rv items
+    @Override
+    public void onItemClick(int clickedItemIndex) {
+        cursor.moveToPosition(clickedItemIndex);
+        String url = cursor.getString(cursor.getColumnIndex(Constants.NewsTable.COLUMN_NAME_URL));
+        Log.d(TAG, String.format("Url %s", url));
+
+        openWebPage(url);
     }
 }

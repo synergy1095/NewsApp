@@ -1,4 +1,4 @@
-package com.example.theblah.newsapp;
+package com.example.theblah.newsapp.Utility;
 
 import com.example.theblah.newsapp.models.NewsItem;
 
