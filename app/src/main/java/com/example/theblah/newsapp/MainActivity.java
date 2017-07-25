@@ -77,6 +77,8 @@ public class MainActivity extends AppCompatActivity
         super.onStop();
         db.close();
         cursor.close();
+        //cancel all current jobs
+        ScheduleUtils.cancelAll(this);
     }
 
     //refresh button menu inflater

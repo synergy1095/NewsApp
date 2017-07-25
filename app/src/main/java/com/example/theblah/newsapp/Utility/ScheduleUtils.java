@@ -103,4 +103,11 @@ public class ScheduleUtils extends JobService {
         //set to true to prevent other schedule attempts
         sInitialized = true;
     }
+
+    synchronized  public static void cancelAll(@NonNull final Context context){
+        Driver driver = new GooglePlayDriver(context);
+        FirebaseJobDispatcher dispatcher = new FirebaseJobDispatcher(driver);
+
+        dispatcher.cancelAll();
+    }
 }
