@@ -16,12 +16,7 @@ import java.util.ArrayList;
 /**
  * Created by TheBlah on 7/24/2017.
  *
- private String author;
- private String title;
- private String description;
- private String url;
- private String urlToImage;
- private String publishedAt;
+ * Database helper methods
  */
 
 public class DBUtils extends SQLiteOpenHelper {

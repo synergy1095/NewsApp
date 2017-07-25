@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.example.theblah.newsapp.MainActivity;
 import com.example.theblah.newsapp.RecyclerViewAdapter;
+import com.example.theblah.newsapp.Shared;
 import com.firebase.jobdispatcher.Constraint;
 import com.firebase.jobdispatcher.Driver;
 import com.firebase.jobdispatcher.FirebaseJobDispatcher;
@@ -41,24 +42,19 @@ public class ScheduleUtils extends JobService {
         currentTask = new AsyncTask() {
             @Override
             protected void onPreExecute() {
-                Log.d(TAG, "scheduled refresh starting.");
                 super.onPreExecute();
+                Log.d(TAG, "scheduled refresh starting.");
             }
 
             //refresh rv on finish
             @Override
             protected void onPostExecute(Object o) {
-                //get cursor to updated db
-                db = new DBUtils(ScheduleUtils.this).getReadableDatabase();
-                cursor = DBUtils.getAll(db);
+                super.onPostExecute(o);
 
-                //reset adapter to new cursor
-                mAdapter = new RecyclerViewAdapter(cursor, main);
-                recyclerView.setAdapter(mAdapter);
-                mAdapter.notifyDataSetChanged();
+                //reset rv to new cursor
+                Shared.resetRV(ScheduleUtils.this);
 
                 jobFinished(job, false);
-                super.onPostExecute(o);
             }
 
             //background thread do database refresh

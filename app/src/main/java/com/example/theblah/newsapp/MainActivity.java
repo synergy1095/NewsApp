@@ -50,34 +50,21 @@ public class MainActivity extends AppCompatActivity
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         boolean isFirst = prefs.getBoolean("isfirst", true);
 
-        if (isFirst) { //if not found then do initial loading of db
+        if (isFirst) { //if first install then do initial loading of db
             refresh();
             SharedPreferences.Editor editor = prefs.edit();
             editor.putBoolean("isfirst", false);
             editor.commit();
+        } else {    //if is not first install show current info stored in db
+            Shared.resetRV(this);
         }
         //schedule
         ScheduleUtils.scheduleRefresh(this);
     }
 
-    //on app create/resume etc set up rv to view db
     @Override
-    protected void onStart() {
-        super.onStart();
-        db = new DBUtils(this).getReadableDatabase();
-        cursor = DBUtils.getAll(db);
-        mAdapter = new RecyclerViewAdapter(cursor, this);
-        recyclerView.setAdapter(mAdapter);
-        showRV();
-    }
-
-    //cleanup for db
-    @Override
-    protected void onStop() {
-        super.onStop();
-        db.close();
-        cursor.close();
-        //cancel all current jobs
+    protected void onDestroy() {
+        super.onDestroy();
         ScheduleUtils.cancelAll(this);
     }
 
@@ -129,15 +116,7 @@ public class MainActivity extends AppCompatActivity
     //callback method for background thread finish
     @Override
     public void onLoadFinished(Loader<Void> loader, Void data) {
-        showRV();
-        //get cursor to updated db
-        db = new DBUtils(MainActivity.this).getReadableDatabase();
-        cursor = DBUtils.getAll(db);
-
-        //reset adapter to new cursor
-        mAdapter = new RecyclerViewAdapter(cursor, this);
-        recyclerView.setAdapter(mAdapter);
-        mAdapter.notifyDataSetChanged();
+        Shared.resetRV(this);
     }
 
     @Override

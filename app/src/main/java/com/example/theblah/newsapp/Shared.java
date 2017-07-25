@@ -1,10 +1,13 @@
 package com.example.theblah.newsapp;
 
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ProgressBar;
+
+import com.example.theblah.newsapp.Utility.DBUtils;
 
 /**
  * Created by TheBlah on 7/24/2017.
@@ -30,5 +33,21 @@ public class Shared {
     public static void showRV() {
         progress.setVisibility(View.GONE);
         recyclerView.setVisibility(View.VISIBLE);
+    }
+
+    //reset recycler view with new cursor
+    public static void resetRV(Context context){
+        if(db != null) db.close();
+        if(cursor != null) cursor.close();
+
+        //update db/cursor
+        db = new DBUtils(context).getReadableDatabase();
+        cursor = DBUtils.getAll(db);
+
+        //reset rv to new cursor
+        mAdapter = new RecyclerViewAdapter(cursor, main);
+        recyclerView.setAdapter(mAdapter);
+        mAdapter.notifyDataSetChanged();
+        showRV();
     }
 }
