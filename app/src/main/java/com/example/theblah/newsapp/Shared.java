@@ -24,19 +24,19 @@ public class Shared {
     public static RecyclerViewAdapter.ItemClickListener main;
 
     //hide rv and show progress circle
-    public static void loadingRV() {
+    synchronized public static void loadingRV() {
         progress.setVisibility(View.VISIBLE);
         recyclerView.setVisibility(View.INVISIBLE);
     }
 
     //hide progress circle and show rv
-    public static void showRV() {
+    synchronized public static void showRV() {
         progress.setVisibility(View.GONE);
         recyclerView.setVisibility(View.VISIBLE);
     }
 
     //reset recycler view with new cursor
-    public static void resetRV(Context context){
+    synchronized public static void resetRV(Context context){
         if(db != null) db.close();
         if(cursor != null) cursor.close();
 

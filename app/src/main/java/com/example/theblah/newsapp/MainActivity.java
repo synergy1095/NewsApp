@@ -63,6 +63,12 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        Shared.showRV();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         ScheduleUtils.cancelAll(this);
@@ -101,7 +107,6 @@ public class MainActivity extends AppCompatActivity
             protected void onStartLoading() {
                 super.onStartLoading();
                 loadingRV();
-
             }
 
             //background thread does stuff here

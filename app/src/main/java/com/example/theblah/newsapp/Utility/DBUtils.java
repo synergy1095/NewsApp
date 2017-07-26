@@ -85,14 +85,7 @@ public class DBUtils extends SQLiteOpenHelper {
         db.delete(Constants.NewsTable.TABLE_NAME, null, null);
     }
 
-    //bulk insert article info to db using transaction to prevent multiple open/close
-//
-//    private String author;
-//    private String title;
-//    private String description;
-//    private String url;
-//    private String urlToImage;
-//    private String publishedAt;
+    //bulk insert article info to db using transaction to prevent multiple open/close for each
     public static void bulkInsert(SQLiteDatabase db, ArrayList<NewsItem> news) {
         db.beginTransaction();
         try {
@@ -113,7 +106,8 @@ public class DBUtils extends SQLiteOpenHelper {
         }
     }
 
-    public static void refreshDB(Context context){
+    //deletes data currently in db and then pulls new data from web and inserts new data
+    synchronized public static void refreshDB(Context context){
         ArrayList<NewsItem> result = null;
         URL url = NetworkUtils.makeURL(Constants.SOURCE, Constants.SORTBY);
 
