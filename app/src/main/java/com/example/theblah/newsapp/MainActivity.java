@@ -1,5 +1,6 @@
 package com.example.theblah.newsapp;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -28,12 +29,15 @@ import com.example.theblah.newsapp.Utility.ScheduleUtils;
 import com.example.theblah.newsapp.Utility.jsonUtils;
 import com.example.theblah.newsapp.models.NewsItem;
 
-import static com.example.theblah.newsapp.Shared.*;
-
 public class MainActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Void>, RecyclerViewAdapter.ItemClickListener {
     static final String TAG = "MainActivity";
 
+    private RecyclerView recyclerView;
+    private RecyclerViewAdapter mAdapter;
+    private Cursor cursor;
+    private SQLiteDatabase db;
+    private ProgressBar progress;
     //https://newsapi.org/v1/articles?source=the-next-web&sortBy=latest&apiKey=
 
     @Override
@@ -43,7 +47,6 @@ public class MainActivity extends AppCompatActivity
 
         progress = (ProgressBar) findViewById(R.id.progressBar);
         recyclerView = (RecyclerView) findViewById(R.id.main_recyclerView);
-        main = this;
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         //check shared preferences for previous installation of app
@@ -56,7 +59,7 @@ public class MainActivity extends AppCompatActivity
             editor.putBoolean("isfirst", false);
             editor.commit();
         } else {    //if is not first install show current info stored in db
-            Shared.resetRV(this);
+            resetRV(this);
         }
         //schedule
         ScheduleUtils.scheduleRefresh(this);
@@ -65,7 +68,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onStart() {
         super.onStart();
-        Shared.showRV();
+        showRV();
     }
 
     @Override
@@ -121,7 +124,7 @@ public class MainActivity extends AppCompatActivity
     //callback method for background thread finish
     @Override
     public void onLoadFinished(Loader<Void> loader, Void data) {
-        Shared.resetRV(this);
+        resetRV(this);
     }
 
     @Override
@@ -136,6 +139,34 @@ public class MainActivity extends AppCompatActivity
         if (intent.resolveActivity(getPackageManager()) != null) {
             startActivity(intent);
         }
+    }
+
+    //hide rv and show progress circle
+    private void loadingRV() {
+        progress.setVisibility(View.VISIBLE);
+        recyclerView.setVisibility(View.INVISIBLE);
+    }
+
+    //hide progress circle and show rv
+    private void showRV() {
+        progress.setVisibility(View.GONE);
+        recyclerView.setVisibility(View.VISIBLE);
+    }
+
+    //reset recycler view with new cursor
+    private void resetRV(Context context){
+        if(db != null) db.close();
+        if(cursor != null) cursor.close();
+
+        //update db/cursor
+        db = new DBUtils(context).getReadableDatabase();
+        cursor = DBUtils.getAll(db);
+
+        //reset rv to new cursor
+        mAdapter = new RecyclerViewAdapter(cursor, this);
+        recyclerView.setAdapter(mAdapter);
+        mAdapter.notifyDataSetChanged();
+        showRV();
     }
 
     //on item click handler for rv items

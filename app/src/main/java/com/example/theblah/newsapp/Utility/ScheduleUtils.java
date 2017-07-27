@@ -5,9 +5,6 @@ import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import com.example.theblah.newsapp.MainActivity;
-import com.example.theblah.newsapp.RecyclerViewAdapter;
-import com.example.theblah.newsapp.Shared;
 import com.firebase.jobdispatcher.Constraint;
 import com.firebase.jobdispatcher.Driver;
 import com.firebase.jobdispatcher.FirebaseJobDispatcher;
@@ -18,12 +15,6 @@ import com.firebase.jobdispatcher.JobService;
 import com.firebase.jobdispatcher.Lifetime;
 import com.firebase.jobdispatcher.Trigger;
 
-import static com.example.theblah.newsapp.Shared.cursor;
-import static com.example.theblah.newsapp.Shared.db;
-import static com.example.theblah.newsapp.Shared.mAdapter;
-import static com.example.theblah.newsapp.Shared.main;
-import static com.example.theblah.newsapp.Shared.recyclerView;
-import static com.example.theblah.newsapp.Shared.showRV;
 import static com.example.theblah.newsapp.Utility.Constants.SCHEDULE_INTERVAL_MINUTES;
 import static com.example.theblah.newsapp.Utility.Constants.SYNC_FLEXTIME_SECONDS;
 
@@ -50,10 +41,6 @@ public class ScheduleUtils extends JobService {
             @Override
             protected void onPostExecute(Object o) {
                 super.onPostExecute(o);
-
-                //reset rv to new cursor
-                Shared.resetRV(ScheduleUtils.this);
-
                 jobFinished(job, false);
             }
 
